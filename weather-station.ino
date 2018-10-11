@@ -83,7 +83,7 @@ void loop()
 void getDHT()
 {
   ktypeTemp = thermocouple.readCelsius();
-  
+
   float tempIni = localTemp;
   float humIni = localHum;
   localTemp = dht.readTemperature();
