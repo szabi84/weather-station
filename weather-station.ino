@@ -3,6 +3,7 @@
 #include <DHT_U.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
+#include <ESP8266HTTPClient.h>
 
 int SCK_PIN = D5;
 int CS_PIN = D6;
@@ -28,9 +29,10 @@ const char* password = "134679825";
 WiFiClient client;
 
 //Thingspeak settings
+HTTPClient http;
 const int channelID = 412051;
 String writeAPIKey = "SVMFBKG4CY91RFXU";
-const char* tsServer = "api.thingspeak.com";
+String tsServer = "http://api.thingspeak.com/update.json";
 long lastUpdate; //The last update
 const int durationUpate = 60000; //The frequency of check kazan and puffer temps
 
@@ -72,7 +74,7 @@ void loop()
 
   long now = millis();
   if ( now - lastUpdate > durationUpate ) {
-    UdateThinkSpeakChannel();
+    udateThinkSpeakChannel();
     lastUpdate = now;
   }
 }
@@ -131,30 +133,18 @@ void drawDHT()
 /***************************************************
   Upload to Thingspeak
 ****************************************************/
-void UdateThinkSpeakChannel () {
-  if (client.connect(tsServer, 80)) {
+void udateThinkSpeakChannel () {
+  String params = "?api_key=" + writeAPIKey;
+  params += "&field1=" + String(localTemp);
+  params += "&field2=" + String(localHum);
+  params += "&field3=" + String(ktypeTemp);
 
-    // Construct API request body
-    String postStr = writeAPIKey;
-    postStr += "&field1=";
-    postStr += String(localTemp);
-    postStr += "&field2=";
-    postStr += String(localHum);
-    postStr += "&field3=";
-    postStr += String(ktypeTemp);
-    postStr += "\r\n\r\n";
+  http.begin(tsServer + params);
+  int httpCode = http.GET();
+  String payload = http.getString();
 
-    client.print("POST /update HTTP/1.1\n");
-    client.print("Host: api.thingspeak.com\n");
-    client.print("Connection: close\n");
-    client.print("X-THINGSPEAKAPIKEY: " + writeAPIKey + "\n");
-    client.print("Content-Type: application/x-www-form-urlencoded\n");
-    client.print("Content-Length: ");
-    client.print(postStr.length());
-    client.print("\n\n");
-    client.print(postStr);
-    client.print("\n\n");
+  Serial.println(httpCode);
+  Serial.println(payload);
 
-  }
-  client.stop();
+  http.end();
 }
